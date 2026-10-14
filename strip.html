@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PuttPace Stroke Strip</title>
+<style>
+  :root { --ink: #1c1c1e; --muted: #6e6e73; --line: #d1d1d6; --bg: #ffffff; --card: #f2f2f7; --accent: #34c759; }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; color: var(--ink); background: var(--bg); }
+  main { max-width: 980px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .controls { background: var(--card); border-radius: 16px; padding: 16px; margin: 20px 0; display: grid; gap: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  .row > span { font-weight: 600; min-width: 130px; }
+  label { display: inline-flex; align-items: center; gap: 6px; }
+  input[type=number] { width: 72px; font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 8px; }
+  button { font: 600 17px/1 inherit; font-family: inherit; color: #fff; background: #000; border: 0; border-radius: 14px; padding: 14px 22px; cursor: pointer; }
+  ol { padding-left: 20px; }
+  .sheet { margin-top: 18px; }
+  .check { display: flex; align-items: center; gap: 10px; font-size: 13px; margin-bottom: 6mm; }
+  .bar { height: 3mm; width: 100mm; background: #000; flex: none; }
+  svg.band { display: block; width: 100%; height: auto; margin-bottom: 4mm; }
+  @media print {
+    @page { size: landscape; margin: 8mm; }
+    .no-print { display: none !important; }
+    main { padding: 0; max-width: none; }
+    .sheet { margin: 0; }
+    svg.band { width: 258mm; height: 46mm; margin-bottom: 7mm; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="no-print">
+    <h1>PuttPace stroke strip</h1>
+    <p class="muted">A paper ruler showing how far back and through to swing for each putt distance. Print it, cut out the three strips and tape them end to end.</p>
+
+    <div class="controls">
+      <div class="row"><span>Handedness</span>
+        <label><input type="radio" name="h" value="r"> Right</label>
+        <label><input type="radio" name="h" value="l"> Left</label></div>
+      <div class="row"><span>Putt distance</span>
+        <label><input type="radio" name="d" value="ft"> Feet</label>
+        <label><input type="radio" name="d" value="m"> Metres</label></div>
+      <div class="row"><span>Main scale</span>
+        <label><input type="radio" name="u" value="cm"> cm</label>
+        <label><input type="radio" name="u" value="in"> inches</label></div>
+      <div class="row"><span>Backswing (cm)</span>
+        <label class="tab0"></label><input type="number" id="b0" step="0.5" min="0" max="60">
+        <label class="tab1"></label><input type="number" id="b1" step="0.5" min="0" max="60">
+        <label class="tab2"></label><input type="number" id="b2" step="0.5" min="0" max="60"></div>
+      <div class="row"><span>Follow-through (cm)</span>
+        <label class="tab0"></label><input type="number" id="t0" step="0.5" min="0" max="60">
+        <label class="tab1"></label><input type="number" id="t1" step="0.5" min="0" max="60">
+        <label class="tab2"></label><input type="number" id="t2" step="0.5" min="0" max="60"></div>
+      <div class="row"><button id="print">Print strip</button>
+        <span class="muted" style="font-weight:400">Opened from the app? Your own lengths are already filled in.</span></div>
+    </div>
+
+    <ol class="muted">
+      <li>Print at <strong>100% / Actual size</strong> (not "Fit to page"), landscape, on A4 or Letter.</li>
+      <li>Check the black bar measures exactly 10 cm.</li>
+      <li>Cut out the three strips. Tape each grey tab under the start of the next strip.</li>
+      <li>Lay the strip beside the ball, with the ball circle level with the ball. Swing back and through to the marks for your distance.</li>
+    </ol>
+  </div>
+
+  <div class="sheet">
+    <div class="check"><div class="bar"></div><span>This bar should measure exactly 10 cm. If not, print again at 100%.</span></div>
+    <div id="bands"></div>
+  </div>
+</main>
+<script>
+(function () {
+  var SEG = 250, TAB = 8, H = 46, HALF = 375;
+  var COLOURS = ['#1b7f3b', '#1f5fbf', '#c4561a'];
+  var q = new URLSearchParams(location.search);
+  function nums(key, def) {
+    var v = (q.get(key) || '').split(',').map(parseFloat);
+    return def.map(function (d, i) { return isFinite(v[i]) ? v[i] : d; });
+  }
+  var st = {
+    h: q.get('h') === 'l' ? 'l' : 'r',
+    d: q.get('d') === 'm' ? 'm' : 'ft',
+    u: q.get('u') === 'in' ? 'in' : 'cm',
+    b: nums('b', [10, 18, 28]),
+    t: nums('t', [12, 21, 33])
+  };
+
+  function radios(name) {
+    document.querySelectorAll('input[name=' + name + ']').forEach(function (r) {
+      r.checked = r.value === st[name];
+      r.addEventListener('change', function () { st[name] = r.value; draw(); });
+    });
+  }
+  ['h', 'd', 'u'].forEach(radios);
+  [0, 1, 2].forEach(function (i) {
+    ['b', 't'].forEach(function (k) {
+      var el = document.getElementById(k + i);
+      el.value = st[k][i];
+      el.addEventListener('input', function () { var v = parseFloat(el.value); if (isFinite(v)) { st[k][i] = v; draw(); } });
+    });
+  });
+  document.getElementById('print').addEventListener('click', function () { window.print(); });
+
+  function tabNames() { return st.d === 'm' ? ['1.5 m', '3 m', '6 m'] : ['5 ft', '10 ft', '20 ft']; }
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  // One band covers physical positions [lo, lo + SEG] in mm, left to right as the golfer sees it.
+  // p (mm from the ball, + = backswing) maps to physical x = p for right-handers, -p for left-handers.
+  function band(k) {
+    var lo = -HALF + SEG * k, last = k === 2;
+    var w = SEG + TAB; // same size for every strip so they print at the same scale
+    var sign = st.h === 'r' ? 1 : -1;
+    var o = [];
+    function X(phys) { return (phys - lo).toFixed(2); }
+    o.push('<svg class="band" xmlns="http://www.w3.org/2000/svg" viewBox="-0.3 -0.3 ' + (w + 0.6) + ' ' + (H + 0.6) + '" width="' + w + 'mm" height="' + H + 'mm" font-family="Helvetica, Arial, sans-serif">');
+    o.push('<rect x="0" y="0" width="' + SEG + '" height="' + H + '" fill="#fff" stroke="#000" stroke-width="0.3"/>');
+    if (!last) {
+      o.push('<rect x="' + SEG + '" y="0" width="' + TAB + '" height="' + H + '" fill="#e5e5ea" stroke="#000" stroke-width="0.2" stroke-dasharray="1 1"/>');
+      o.push('<text x="' + (SEG + TAB / 2) + '" y="' + H / 2 + '" font-size="2.6" text-anchor="middle" transform="rotate(90 ' + (SEG + TAB / 2) + ' ' + H / 2 + ')" fill="#444">tape under strip ' + (k + 2) + '</text>');
+    }
+    // Metric scale along the top edge, inches along the bottom.
+    var metricMain = st.u === 'cm';
+    for (var mm = 0; mm <= HALF; mm++) {
+      [1, -1].forEach(function (s) {
+        if (mm === 0 && s === -1) return;
+        var phys = s * mm;
+        if (phys < lo || phys > lo + SEG) return;
+        var len = mm % 10 === 0 ? 5 : mm % 5 === 0 ? 3.5 : 2;
+        o.push('<line x1="' + X(phys) + '" y1="0" x2="' + X(phys) + '" y2="' + len + '" stroke="#000" stroke-width="' + (mm % 10 === 0 ? 0.3 : 0.15) + '"/>');
+        if (mm % 10 === 0 && mm > 0) o.push('<text x="' + X(phys) + '" y="' + (metricMain ? 9.2 : 8.2) + '" font-size="' + (metricMain ? 3.4 : 2.6) + '" text-anchor="middle">' + mm / 10 + '</text>');
+      });
+    }
+    var q4 = 25.4 / 4;
+    for (var n = 0; n * q4 <= HALF; n++) {
+      [1, -1].forEach(function (s) {
+        if (n === 0 && s === -1) return;
+        var phys = s * n * q4;
+        if (phys < lo || phys > lo + SEG) return;
+        var len = n % 4 === 0 ? 5 : n % 2 === 0 ? 3.5 : 2;
+        o.push('<line x1="' + X(phys) + '" y1="' + H + '" x2="' + X(phys) + '" y2="' + (H - len) + '" stroke="#000" stroke-width="' + (n % 4 === 0 ? 0.3 : 0.15) + '"/>');
+        if (n % 4 === 0 && n > 0) o.push('<text x="' + X(phys) + '" y="' + (H - (metricMain ? 6.2 : 6.6)) + '" font-size="' + (metricMain ? 2.6 : 3.4) + '" text-anchor="middle">' + n / 4 + '</text>');
+      });
+    }
+
+    // Ball (42.7 mm) at 0.
+    if (lo <= 21.4 && lo + SEG >= -21.4) {
+      o.push('<circle cx="' + X(0) + '" cy="' + H / 2 + '" r="21.35" fill="none" stroke="#000" stroke-width="0.3" stroke-dasharray="1.2 0.8"/>');
+      o.push('<line x1="' + X(0) + '" y1="' + (H / 2 - 4) + '" x2="' + X(0) + '" y2="' + (H / 2 + 4) + '" stroke="#000" stroke-width="0.4"/>');
+      o.push('<text x="' + X(0) + '" y="' + (H / 2 - 7) + '" font-size="3" text-anchor="middle" font-weight="bold">BALL</text>');
+    }
+    // Stroke marks for each distance.
+    var names = tabNames();
+    [0, 1, 2].forEach(function (i) {
+      [['b', 1, 'back'], ['t', -1, 'through']].forEach(function (m) {
+        var cm = st[m[0]][i];
+        if (!(cm > 0)) return;
+        var phys = sign * m[1] * cm * 10;
+        if (phys < lo || phys > lo + SEG || Math.abs(phys) > HALF) return;
+        var y0 = 11 + i * 1.5, y1 = H - 11 - i * 1.5;
+        o.push('<line x1="' + X(phys) + '" y1="' + y0 + '" x2="' + X(phys) + '" y2="' + y1 + '" stroke="' + COLOURS[i] + '" stroke-width="0.9"/>');
+        var ty = 17 + i * 6.5;
+        var xm = parseFloat(X(phys));
+        var anchor = xm < 30 ? 'start' : xm > SEG - 30 ? 'end' : (m[1] * sign > 0) ? 'start' : 'end';
+        var dx = anchor === 'start' ? 1.2 : -1.2;
+        o.push('<text x="' + (parseFloat(X(phys)) + dx) + '" y="' + ty + '" font-size="3.4" font-weight="bold" fill="' + COLOURS[i] + '" text-anchor="' + anchor + '">' + esc(names[i]) + '</text>');
+        o.push('<text x="' + (parseFloat(X(phys)) + dx) + '" y="' + (ty + 3) + '" font-size="2.4" fill="' + COLOURS[i] + '" text-anchor="' + anchor + '">' + m[2] + '</text>');
+      });
+    });
+    // Direction labels and strip number.
+    var mid = SEG / 2;
+    var holeLeft = st.h === 'r';
+    var hasBall = lo <= 0 && lo + SEG >= 0;
+    if (hasBall) {
+      var ballX = parseFloat(X(0));
+      var leftLabel = holeLeft ? '\u2190 HOLE' : '\u2190 BACKSWING', rightLabel = holeLeft ? 'BACKSWING \u2192' : 'HOLE \u2192';
+      o.push('<text x="' + (ballX - 28) + '" y="' + (H / 2 + 1) + '" font-size="3" text-anchor="end" fill="#444" letter-spacing="0.3">' + leftLabel + '</text>');
+      o.push('<text x="' + (ballX + 28) + '" y="' + (H / 2 + 1) + '" font-size="3" text-anchor="start" fill="#444" letter-spacing="0.3">' + rightLabel + '</text>');
+    } else {
+      o.push('<text x="' + mid + '" y="' + (H - 13) + '" font-size="3" text-anchor="middle" fill="#444" letter-spacing="0.3">' + ((lo + SEG / 2) * sign > 0 ? 'BACKSWING SIDE' : 'FOLLOW-THROUGH SIDE') + '</text>');
+    }
+    o.push('<text x="' + (hasBall ? SEG / 4 : mid) + '" y="14" font-size="2.6" text-anchor="middle" fill="#444">PuttPace strip ' + (k + 1) + ' of 3  \u00b7  top: cm  \u00b7  bottom: inches</text>');
+    o.push('</svg>');
+    return o.join('');
+  }
+
+  function draw() {
+    var names = tabNames();
+    document.querySelectorAll('.tab0').forEach(function (e) { e.textContent = names[0]; });
+    document.querySelectorAll('.tab1').forEach(function (e) { e.textContent = names[1]; });
+    document.querySelectorAll('.tab2').forEach(function (e) { e.textContent = names[2]; });
+    document.getElementById('bands').innerHTML = band(0) + band(1) + band(2);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
