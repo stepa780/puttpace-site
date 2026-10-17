@@ -237,12 +237,16 @@ button.row:active { background: var(--band); }
   <h3 class="group">Practice</h3>
   <section class="card">
     <div class="row stack">
-      <span class="text"><span class="title">Distance drill</span><span class="sub">Ladder: 5, 10, 20, 10 ft and round again. Random: a new distance each putt</span></span>
+      <span class="text"><span class="title">Distance drill</span><span class="sub" id="drillSub">Ladder cycle: 5 ft, 10 ft, 20 ft, 10 ft, 5 ft putts. Random: a new distance each putt</span></span>
       <span class="seg full" id="drill"><button data-v="0">Off</button><button data-v="1">Ladder</button><button data-v="2">Random</button></span>
     </div>
     <button class="row" id="rowDrillReps">
       <span class="text"><span class="title">Putts per distance</span><span class="sub">Ladder moves on after this many</span></span>
       <span class="value"><span id="vDrillReps">3</span><svg class="chev" viewBox="0 0 11 18"><path d="M1.8 6.5 5.5 2.2 9.2 6.5M1.8 11.5l3.7 4.3 3.7-4.3"/></svg></span>
+    </button>
+    <button class="row" id="rowCycles">
+      <span class="text"><span class="title">Number of cycles</span><span class="sub">Ladder stops after this many, or keeps going</span></span>
+      <span class="value"><span id="vCycles">Continuous</span><svg class="chev" viewBox="0 0 11 18"><path d="M1.8 6.5 5.5 2.2 9.2 6.5M1.8 11.5l3.7 4.3 3.7-4.3"/></svg></span>
     </button>
     <button class="row" id="rowRest">
       <span class="text"><span class="title">Rest between putts</span><span class="sub">Pause before the next putt, or wait for a tap</span></span>
@@ -354,6 +358,7 @@ button.row:active { background: var(--band); }
     metres: Array.from({ length: 36 }, (_, i) => (i + 1) / 2),     // 0.5 – 18 m
     rest: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 15],                    // 0 = tap to continue
     drillReps: Array.from({ length: 10 }, (_, i) => i + 1),
+    cycles: Array.from({ length: 11 }, (_, i) => i),               // 0 = continuous
   };
   const CM_PER_IN = 2.54, M_PER_FT = 0.3048;
   const LEAD_IN = 2.0, MARGIN_MM = 4, HOLD = 0.4, RETURN = 0.8, TAP_LEAD = 0.3;
@@ -361,7 +366,7 @@ button.row:active { background: var(--band); }
   // Starting strokes per tab for medium greens: [bpm, ratio, back cm, through cm]. Custom starts like 10 ft.
   const DEFAULT_SLOTS = [[76, 2, 10, 12], [76, 2, 18, 21], [76, 2, 28, 33], [76, 2, 18, 21]];
   const STIMP = [8, 10, 12];
-  const LADDER = [0, 1, 2, 1];
+  const LADDER = [0, 1, 2, 1, 0];
   const region = ((navigator.language || '').split('-')[1] || '').toUpperCase();
 
   const fmt = {
@@ -384,7 +389,7 @@ button.row:active { background: var(--band); }
     distMetric: !['US', 'GB', 'IE', 'LR', 'MM'].includes(region), green: 1,
     sound: true, fourCues: false, soundStyle: 0, lineStyle: 0, thickness: 2, colour: 0, glow: true, background: 0,
     hand: 'right', units: ['US', 'LR', 'MM'].includes(region) ? 'imperial' : 'metric',
-    drill: 0, drillReps: 3, rest: 2,
+    drill: 0, drillReps: 3, drillCycles: 0, rest: 2,
   };
 
   // Stripe look. Black is drawn on a white screen; every other colour on black.
@@ -499,6 +504,9 @@ button.row:active { background: var(--band); }
     $('rowCustom').hidden = s.tab !== CUSTOM;
     $('rowDrillReps').hidden = s.drill !== 1;
     $('vDrillReps').textContent = String(s.drillReps);
+    $('rowCycles').hidden = s.drill !== 1;
+    $('vCycles').textContent = s.drillCycles > 0 ? String(s.drillCycles) : 'Continuous';
+    $('drillSub').textContent = 'Ladder cycle: ' + LADDER.map(i => tabLabels(s.distMetric)[i]).join(', ') + ' putts. Random: a new distance each putt';
     $('vRest').textContent = fmt.rest(s.rest);
     tabLabels(s.distMetric).forEach((l, i) => { $('tab').children[i].textContent = l; });
     $('foot').textContent = `${s.distMetric ? 'Metres' : 'Feet'} · ${s.units === 'imperial' ? 'inches' : 'cm'} · BPM`;
@@ -672,6 +680,7 @@ button.row:active { background: var(--band); }
     ? openSheet('Choose Putt Distance', { values: RANGES.metres, labels: RANGES.metres.map(fmt.metres), index: near(RANGES.metres, s.customM), onChange: v => update(withCustom(v)) })
     : openSheet('Choose Putt Distance', { values: RANGES.feet, labels: RANGES.feet.map(fmt.feet), index: near(RANGES.feet, s.customM / M_PER_FT), onChange: v => update(withCustom(v * M_PER_FT)) });
   $('rowDrillReps').onclick = () => openSheet('Putts per Distance', { values: RANGES.drillReps, labels: RANGES.drillReps.map(String), index: near(RANGES.drillReps, s.drillReps), onChange: v => update({ drillReps: v }) });
+  $('rowCycles').onclick = () => openSheet('Number of Cycles', { values: RANGES.cycles, labels: RANGES.cycles.map(v => v ? String(v) : 'Continuous'), index: near(RANGES.cycles, s.drillCycles), onChange: v => update({ drillCycles: v }) });
   $('rowRest').onclick = () => openSheet('Rest Between Putts', { values: RANGES.rest, labels: RANGES.rest.map(v => v <= 0 ? 'Tap to continue' : `${v} s`), index: near(RANGES.rest, s.rest), onChange: v => update({ rest: v }) });
   $('plus').onclick = () => openSheet('Save preset', { preset: true });
 
@@ -715,7 +724,10 @@ button.row:active { background: var(--band); }
 
   // ---------- trainer ----------
   let audio = null, playing = false, raf = 0, wakeLock = null, st = null, seed = 0;
-  let cur = null, next = null, waiting = false;
+  let cur = null, next = null, waiting = false, finished = false;
+  // Ladder with a set number of cycles: total putts, or null to keep going.
+  const totalReps = () => st.drill === 1 && st.drillCycles > 0 ? st.drillCycles * LADDER.length * Math.max(1, st.drillReps) : null;
+  const isLast = n => totalReps() !== null && n >= totalReps() - 1;
   const now = () => audio ? audio.currentTime - (audio.outputLatency || audio.baseLatency || 0) : performance.now() / 1000;
 
   // Settings for rep n: in a drill each rep uses that distance tab's stroke.
@@ -763,6 +775,7 @@ button.row:active { background: var(--band); }
   function step() {
     const t = now() - cur.start;
     schedule(cur);
+    if (isLast(cur.n)) { if (t >= cur.T.settle) { finished = true; pause(); } return; }
     if (cur.T.tap) { if (t >= cur.T.settle) waiting = true; return; }
     if (!next) next = makeRep(cur.n + 1, cur.start + cur.T.cycle);
     if (next.start - now() < 0.6) schedule(next);
@@ -811,17 +824,20 @@ button.row:active { background: var(--band); }
     if (!playing || e < 0) {
       g.globalAlpha = 0.75;
       let y = chh / 2 - 30;
-      line(playing ? 'Get set…' : 'Paused', y, 30, 700); y += 34;
-      const what = drill ? `${st.drill === 1 ? 'Ladder' : 'Random'} drill` : `${fmt.dist(distanceM(rs), st.distMetric)} putt`;
+      line(playing ? 'Get set…' : finished ? 'Drill complete' : 'Paused', y, 30, 700); y += 34;
+      const what = drill && totalReps() ? `Ladder drill: ${st.drillCycles} ${st.drillCycles === 1 ? 'cycle' : 'cycles'}, ${totalReps()} putts` : drill ? `${st.drill === 1 ? 'Ladder' : 'Random'} drill` : `${fmt.dist(distanceM(rs), st.distMetric)} putt`;
       line(`${what}  ·  ${fmt.bpm(rs.bpm)}  ·  ${fmt.ratio(rs.ratio)}`, y, 15); y += 24;
       line(`Back ${fmt.length(rs.length, st.units)}  ·  Through ${fmt.length(rs.follow, st.units)}`, y, 15);
       const over = (addr + rs.length * 10 * p - span) / p;
       if (over > 0) { y += 24; line(`Backswing ends ${fmt.length(over / 10, st.units)} off screen: mark it with a tee`, y, 15); }
       y += 24; line(`Follow-through carries on ${fmt.length(rs.follow, st.units)} past the ball, off the screen`, y, 15);
       if (calibrated <= 0 && !isIPhone) { y += 24; line('Screen not calibrated: distances are estimates', y, 15); }
-      y += 24; line(playing ? 'Tap to pause  ·  × to exit' : 'Tap to resume  ·  × to exit', y, 15);
+      y += 24; line(playing ? 'Tap to pause  ·  × to exit' : finished ? 'Tap to start again  ·  × to exit' : 'Tap to resume  ·  × to exit', y, 15);
     } else {
-      if (drill) { g.globalAlpha = t < T.beat ? 0.9 : 0.45; line(fmt.dist(distanceM(rs), st.distMetric), chh * 0.3, 30, 700); }
+      if (drill) {
+        g.globalAlpha = t < T.beat ? 0.9 : 0.45; line(fmt.dist(distanceM(rs), st.distMetric), chh * 0.3, 30, 700);
+        if (totalReps()) { g.globalAlpha = 0.65; line(`Putt ${cur.n + 1} of ${totalReps()}`, chh * 0.3 + 26, 15); }
+      }
       if (waiting) {
         const nx = repSettings(cur.n + 1);
         g.globalAlpha = 0.9; line(drill ? `Tap for ${fmt.dist(distanceM(nx), st.distMetric)}` : 'Tap for the next putt', chh * 0.75, 30, 700);
@@ -839,8 +855,9 @@ button.row:active { background: var(--band); }
     raf = requestAnimationFrame(loop);
   }
   function play() {
-    playing = true; waiting = false; next = null;
-    cur = makeRep(cur ? cur.n : 0, now() + LEAD_IN);
+    const n = cur && !finished ? cur.n : 0;
+    playing = true; waiting = false; next = null; finished = false;
+    cur = makeRep(n, now() + LEAD_IN);
     cancelAnimationFrame(raf); loop();
   }
   async function pause() {
