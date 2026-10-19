@@ -834,16 +834,29 @@ button.row:active { background: var(--band); }
       if (calibrated <= 0 && !isIPhone) { y += 24; line('Screen not calibrated: distances are estimates', y, 15); }
       y += 24; line(playing ? 'Tap to pause  ·  × to exit' : finished ? 'Tap to start again  ·  × to exit' : 'Tap to resume  ·  × to exit', y, 15);
     } else {
+      const nextY = chh - 98;
       if (drill) {
-        g.globalAlpha = t < T.beat ? 0.9 : 0.45; line(fmt.dist(distanceM(rs), st.distMetric), chh * 0.3, 30, 700);
-        if (totalReps()) { g.globalAlpha = 0.65; line(`Putt ${cur.n + 1} of ${totalReps()}`, chh * 0.3 + 26, 15); }
+        g.globalAlpha = t < T.beat ? 0.9 : 0.45; line(fmt.dist(distanceM(rs), st.distMetric), chh * 0.2, 30, 700);
+        if (totalReps()) { g.globalAlpha = 0.65; line(`Putt ${cur.n + 1} of ${totalReps()}`, chh * 0.2 + 26, 15); }
       }
       if (waiting) {
         const nx = repSettings(cur.n + 1);
-        g.globalAlpha = 0.9; line(drill ? `Tap for ${fmt.dist(distanceM(nx), st.distMetric)}` : 'Tap for the next putt', chh * 0.75, 30, 700);
-      } else if (drill && t > T.settle) {
-        const nx = repSettings(cur.n + 1);
-        if (distanceM(nx) !== distanceM(rs)) { g.globalAlpha = 0.85; line(`Next: ${fmt.dist(distanceM(nx), st.distMetric)}`, chh * 0.75, 15); }
+        g.globalAlpha = 0.9; line(drill ? `Tap for ${fmt.dist(distanceM(nx), st.distMetric)}` : 'Tap for the next putt', nextY, 30, 700);
+      } else {
+        if (drill && t > T.settle) {
+          const nx = repSettings(cur.n + 1);
+          if (distanceM(nx) !== distanceM(rs)) { g.globalAlpha = 1; line(`Next: ${fmt.dist(distanceM(nx), st.distMetric)}`, nextY, 30, 700); }
+        }
+        // Countdown to the next takeaway: 5, 4, 3, 2, 1, each fading out over its second.
+        let toGo = NaN;
+        if (t < T.beat) toGo = T.beat - t;
+        else if (t > T.settle && !T.tap) toGo = T.cycle - t + (next ? next.T.beat : timeline(repSettings(cur.n + 1)).beat);
+        if (toGo > 0 && toGo <= 5) {
+          const n = Math.ceil(toGo), fade = toGo - (n - 1);
+          g.globalAlpha = Math.max(0, Math.min(1, fade));
+          g.font = `700 ${64 * (0.85 + 0.15 * fade)}px ${font}`;
+          g.fillText(String(n), cx, chh - 24);
+        }
       }
     }
     g.restore();
