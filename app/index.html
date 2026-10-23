@@ -330,7 +330,7 @@ button.row:active { background: var(--band); }
   <canvas id="calibCanvas"></canvas>
   <div class="panel">
     <h2>Screen calibration</h2>
-    <p>The outline starts smaller than a card. Lay a bank card on it, then press + or drag until the outline matches the card's left and right edges. Check against a ruler using the scale on the left.</p>
+    <p>Stand a bank card upright on the screen with its top edge on the blue top line. Press + or − (hold to repeat) or drag until the bottom line meets the card's bottom edge. Check against a ruler using the scale on the left.</p>
     <div class="slider">
       <button class="nudge" id="minus" aria-label="Smaller">−</button>
       <input type="range" id="scale" min="0" max="1200" step="1" aria-label="Screen scale">
@@ -700,13 +700,16 @@ button.row:active { background: var(--band); }
       g.fillRect(0, y - 0.5, len, 1);
       if (mm % 10 === 0 && mm > 0) g.fillText(String(mm / 10), 7 * p, y + 4);
     }
+    // Portrait card: the top edge stays on a fixed line and only the 85.60 mm length is matched.
     const cw = CARD_SHORT * p, ch = CARD_LONG * p, areaLeft = 12 * p;
-    const cx = areaLeft + (w - areaLeft) / 2, cy = top + 6 * p + ch / 2;   // top-aligned; the bottom may run off a short screen
-    g.beginPath(); g.roundRect(cx - cw / 2, cy - ch / 2, cw, ch, CARD_R * p);
+    const cx = areaLeft + (w - areaLeft) / 2, y0 = top + 6 * p, y1 = y0 + ch;
+    g.beginPath(); g.roundRect(cx - cw / 2, y0, cw, ch, CARD_R * p);
     g.fillStyle = 'rgba(0,122,255,.08)'; g.fill();
     g.lineWidth = 2; g.strokeStyle = '#007AFF'; g.stroke();
-    g.fillStyle = '#007AFF'; g.textAlign = 'center'; g.font = '600 14px ' + getComputedStyle(document.body).fontFamily;
-    g.fillText('Bank card', cx, cy); g.fillText('85.60 × 53.98 mm', cx, cy + 20); g.textAlign = 'start';
+    g.fillStyle = '#007AFF'; g.fillRect(areaLeft, y0 - 0.75, w - areaLeft, 1.5); g.fillRect(areaLeft, y1 - 0.75, w - areaLeft, 1.5);
+    g.textAlign = 'center'; g.font = '600 14px ' + getComputedStyle(document.body).fontFamily;
+    g.fillText('Top edge here', cx, y0 + 22); g.fillText('Bank card, 85.60 mm long', cx, (y0 + y1) / 2);
+    g.fillText('Match the bottom edge', cx, y1 - 12); g.textAlign = 'start';
   }
   const setCalibFromSlider = () => { calibValue = calibMin + (calibMax - calibMin) * $('scale').value / 1200; drawCalib(); };
   $('rowCalib').onclick = () => {
@@ -716,8 +719,18 @@ button.row:active { background: var(--band); }
     $('calib').hidden = false; drawCalib();
   };
   $('scale').oninput = setCalibFromSlider;
-  $('minus').onclick = () => { $('scale').value = +$('scale').value - 1; setCalibFromSlider(); };
-  $('more').onclick = () => { $('scale').value = +$('scale').value + 1; setCalibFromSlider(); };
+  // Each press moves the card's bottom edge by 0.2 mm; holding repeats.
+  const nudge = sign => {
+    calibValue = Math.min(calibMax, Math.max(calibMin, calibValue * (1 + sign * 0.2 / CARD_LONG)));
+    $('scale').value = Math.round((calibValue - calibMin) / (calibMax - calibMin) * 1200); drawCalib();
+  };
+  for (const [id, sign] of [['minus', -1], ['more', 1]]) {
+    let hold = 0, rep = 0;
+    const stop = () => { clearTimeout(hold); clearInterval(rep); };
+    $(id).onpointerdown = e => { e.preventDefault(); nudge(sign); hold = setTimeout(() => { rep = setInterval(() => nudge(sign), 70); }, 400); };
+    $(id).onpointerup = $(id).onpointerleave = $(id).onpointercancel = stop;
+    $(id).onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nudge(sign); } };
+  }
   $('calibCancel').onclick = () => { $('calib').hidden = true; };
   $('calibSave').onclick = () => { calibrated = calibValue; save('pt.pxPerMm', calibrated); $('calib').hidden = true; render(); };
   addEventListener('resize', () => { if (!$('calib').hidden) drawCalib(); });
