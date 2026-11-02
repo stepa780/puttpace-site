@@ -46,8 +46,8 @@
   .note { margin: 18px 0 0; font-size: 15px; color: var(--muted); }
 
   /* The line, one stroke at 76 BPM and 2:1, right-handed: back to the right, through off the left. */
-  .stage { position: relative; aspect-ratio: 1 / 0.82; overflow: hidden; border-radius: 28px; background: repeating-linear-gradient(90deg, rgba(242,232,207,0.035) 0 60px, transparent 60px 120px), radial-gradient(circle at 50% 40%, #2F6B48, var(--forest) 70%); }
-  .phone { position: absolute; left: 6%; right: 6%; top: 8%; height: 50%; border-radius: 22px; background: #0F1D15; border: 6px solid #05130D; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,0.35); }
+  .stage { position: relative; aspect-ratio: 1 / 0.95; overflow: hidden; border-radius: 28px; background: repeating-linear-gradient(90deg, rgba(242,232,207,0.035) 0 60px, transparent 60px 120px), radial-gradient(circle at 50% 40%, #2F6B48, var(--forest) 70%); }
+  .phone { position: absolute; left: 6%; right: 6%; top: 6%; height: 44%; border-radius: 22px; background: #0F1D15; border: 6px solid #05130D; overflow: hidden; box-shadow: 0 18px 40px rgba(0,0,0,0.35); }
   .tick { position: absolute; width: 2px; height: 9%; background: #6E7D72; }
   .tick.a { left: 14%; } .tick.b { left: 64%; }
   .tick.t { top: 0; } .tick.u { bottom: 0; }
@@ -57,9 +57,8 @@
   .gauge { position: relative; width: 44%; height: 7px; margin: 8px auto 0; border-radius: 4px; background: linear-gradient(90deg, #296780 0 40%, #1D7737 40% 60%, #756615 60%); }
   .gauge i { position: absolute; left: 50%; top: -4px; width: 15px; height: 15px; margin-left: -7px; border-radius: 50%; background: var(--beat); border: 2px solid #fff; }
   .line { position: absolute; top: 0; bottom: 0; left: 14%; width: 5%; margin-left: -2.5%; background: #fff; box-shadow: 0 0 22px 10px rgba(255,255,255,0.5), 0 0 60px 26px rgba(255,255,255,0.16); animation: stroke 3.2s infinite; }
-  .putter { position: absolute; top: 66%; height: 22%; left: 14%; width: 5.4%; margin-left: -2.7%; border-radius: 5px; background: #0B0F0C; animation: strokeBlade 3.2s infinite; }
-  .putter::after { content: ""; position: absolute; left: 44%; top: 42%; width: 12%; height: 16%; background: #F2E8CF; }
-  .ball { position: absolute; top: 74%; left: 7%; width: 6%; aspect-ratio: 1; border-radius: 50%; background: #fff; box-shadow: 3px 4px 0 rgba(0,0,0,0.25); animation: ball 3.2s infinite; }
+  .putter { position: absolute; left: 18.3%; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; animation: strokeBlade 3.2s infinite; }
+  .ball { position: absolute; top: 58.9%; left: 7%; width: 9%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 38% 35%, #fff, #ececec 70%, #bfc3c6); box-shadow: 5px 7px 0 rgba(0,0,0,0.28); animation: ball 3.2s infinite; }
   @keyframes stroke {
     0%, 7.8% { left: 14%; animation-timing-function: ease-in-out; }
     24.4% { left: 64%; animation-timing-function: ease-in; }
@@ -69,18 +68,18 @@
     68.75%, 100% { left: 14%; }
   }
   @keyframes strokeBlade {
-    0%, 7.8% { left: 18%; animation-timing-function: ease-in-out; }
-    24.4% { left: 64%; animation-timing-function: ease-in; }
-    32.5% { left: 18%; animation-timing-function: ease-out; }
-    40.3% { left: 4%; }
-    50% { left: 4%; animation-timing-function: ease-in-out; }
-    68.75%, 100% { left: 18%; }
+    0%, 7.8% { left: 18.3%; animation-timing-function: ease-in-out; }
+    24.4% { left: 62.3%; animation-timing-function: ease-in; }
+    32.5% { left: 18.3%; animation-timing-function: ease-out; }
+    40.3% { left: 0.7%; }
+    50% { left: 0.7%; animation-timing-function: ease-in-out; }
+    68.75%, 100% { left: 18.3%; }
   }
   @keyframes ball {
-    0%, 32.5% { left: 8%; opacity: 1; animation-timing-function: cubic-bezier(.1,.7,.3,1); }
-    47% { left: -12%; opacity: 1; }
-    47.1%, 88% { left: -12%; opacity: 0; }
-    95%, 100% { left: 8%; opacity: 1; }
+    0%, 32.5% { left: 7%; opacity: 1; animation-timing-function: cubic-bezier(.1,.7,.3,1); }
+    47% { left: -14%; opacity: 1; }
+    47.1%, 88% { left: -14%; opacity: 0; }
+    95%, 100% { left: 7%; opacity: 1; }
   }
   @keyframes verdict {
     0%, 33% { opacity: 0; }
@@ -179,7 +178,19 @@
         <div class="line"></div>
       </div>
       <div class="ball"></div>
-      <div class="putter"></div>
+      <svg class="putter" viewBox="0 0 1045 993" aria-hidden="true">
+        <defs>
+          <linearGradient id="blade" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#3A3D40"/><stop offset="0.25" stop-color="#1C1E20"/><stop offset="1" stop-color="#0B0C0D"/></linearGradient>
+          <linearGradient id="shaft" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#0B0C0D"/><stop offset="0.45" stop-color="#6A6E72"/><stop offset="1" stop-color="#0B0C0D"/></linearGradient>
+        </defs>
+        <path d="M -3 727 L 44 880 L 58 880 L 11 727 Z" fill="url(#shaft)"/>
+        <path d="M 38 862 L 82 1010 L 118 1010 L 64 862 Z" fill="#121314"/>
+        <rect x="-18" y="523" width="43" height="231" rx="11" fill="rgba(0,0,0,0.35)"/>
+        <rect x="-21.5" y="517" width="43" height="231" rx="11" fill="url(#blade)" stroke="#45494D" stroke-width="1.5"/>
+        <rect x="-21.5" y="522" width="4" height="221" rx="2" fill="#8A8F94" opacity="0.7"/>
+        <rect x="-13" y="630" width="27" height="4" rx="2" fill="#F2F2F2"/>
+        <circle cx="4" cy="727" r="9" fill="#2A2C2E" stroke="#55595D" stroke-width="1.5"/>
+      </svg>
     </div>
   </header>
 </div>
